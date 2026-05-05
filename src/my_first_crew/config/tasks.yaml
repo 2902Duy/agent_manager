@@ -1,0 +1,11 @@
+managed_execution_task:
+  description: >
+    Manager nhận task của user, tìm agent phù hợp nhất, giao việc, và tổng hợp kết quả.
+  expected_output: >
+    Bản trả lời nháp gồm agent đã chọn, lý do chọn, kết quả thực hiện, và điểm còn thiếu nếu có.
+
+manager_review_task:
+  description: >
+    Agent gốc review kết quả sau khi worker hoàn thành trước khi gửi lại user.
+  expected_output: >
+    Final answer bằng tiếng Việt gồm Kết quả, Review của manager, và Bước tiếp theo nếu cần.

@@ -1,0 +1,4 @@
+LangGraph là framework để xây dựng workflow agent.
+CrewAI là framework multi-agent.
+Ollama dùng để chạy LLM local.
+RAG là kỹ thuật truy xuất dữ liệu trước khi trả lời.
