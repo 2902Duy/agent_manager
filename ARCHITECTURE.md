@@ -67,9 +67,10 @@ Facade tương thích ngược. Code mới nên import từ các module chuẩn 
 
 ```text
 rag_search
-sql_schema
-sql_query
-create_revenue_chart
+sqlserver_test_connection
+sqlserver_schema
+sqlserver_query
+sqlserver_sample_rows
+create_bar_chart
 ```
 
-`custom_tool.py` là scaffold mẫu, chưa dùng trong workflow chính.

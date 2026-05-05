@@ -1,0 +1,42 @@
+local-rag:
+  description: Đọc và truy xuất tài liệu nội bộ.
+  risk_level: low
+  tools: [rag_search]
+  required_skills: [rag-research]
+
+sqlserver-readonly:
+  description: Đọc SQL Server thật bằng connection profile read-only.
+  risk_level: medium
+  tools: [sqlserver_test_connection, sqlserver_schema, sqlserver_query, sqlserver_sample_rows]
+  required_skills: [sqlserver-operations, sql-analysis]
+  policies: [readonly_only, allowlisted_tables_only, max_rows_500]
+
+dataframe-analysis:
+  description: Phân tích dữ liệu bảng sau khi truy xuất.
+  risk_level: low
+  tools: [dataframe_profile]
+  required_skills: [data-quality-check, business-metrics]
+
+data-export:
+  description: Lưu dữ liệu đã truy xuất thành file thật trong output/.
+  risk_level: medium
+  tools: [save_rows_csv]
+  required_skills: [export-packaging]
+
+charting:
+  description: Tạo biểu đồ từ dữ liệu.
+  risk_level: low
+  tools: [create_bar_chart]
+  required_skills: [chart-selection]
+
+report-export:
+  description: Đóng gói kết quả thành báo cáo.
+  risk_level: medium
+  tools: [save_rows_csv, export_markdown, export_excel, export_pdf]
+  required_skills: [report-writing, export-packaging]
+
+evaluation:
+  description: Review, kiểm định và đánh giá kết quả.
+  risk_level: low
+  tools: []
+  required_skills: [result-review, security-review]

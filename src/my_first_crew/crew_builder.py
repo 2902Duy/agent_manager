@@ -1,12 +1,20 @@
+import os
 from typing import Iterable
 
 from crewai import Agent, Crew, LLM, Process, Task
 
+from my_first_crew.capability_registry import load_agent_skills, tools_for_groups
 from my_first_crew.encoding_setup import force_utf8
 from my_first_crew.models import AgentBlueprint, DEFAULT_MODEL, normalize_text
-from my_first_crew.tools.chart_tool import RevenueChartTool
+from my_first_crew.tools.chart_tool import BarChartFromRowsTool
+from my_first_crew.tools.export_tool import SaveRowsCSVTool
 from my_first_crew.tools.rag_tool import RagSearchTool
-from my_first_crew.tools.sql_tool import SqlQueryTool, SqlSchemaTool
+from my_first_crew.tools.sqlserver_tool import (
+    SQLServerQueryTool,
+    SQLServerSampleRowsTool,
+    SQLServerSchemaTool,
+    SQLServerTestConnectionTool,
+)
 
 
 force_utf8()
@@ -27,7 +35,6 @@ def recommend_agent(user_task: str, blueprints: Iterable[AgentBlueprint]) -> Age
         "sql",
         "database",
         "sqlite",
-        "sample.db",
         "schema",
         "bang",
         "du lieu",
@@ -40,6 +47,7 @@ def recommend_agent(user_task: str, blueprints: Iterable[AgentBlueprint]) -> Age
     chart_keywords = ("bieu do", "ve bieu do", "chart", "visual", "do thi", "dashboard")
     planning_keywords = ("plan", "ke hoach", "workflow", "setup", "quy trinh", "trien khai")
     writing_keywords = ("viet", "tom tat", "bao cao", "tra loi", "giai thich")
+    has_sqlserver_config = bool(os.getenv("SQLSERVER_HOST") and os.getenv("SQLSERVER_DATABASE"))
 
     def score(blueprint: AgentBlueprint) -> int:
         haystack = normalize_text(f"{blueprint.role} {blueprint.goal} {blueprint.backstory}")
@@ -48,6 +56,10 @@ def recommend_agent(user_task: str, blueprints: Iterable[AgentBlueprint]) -> Age
             value += 5
         if blueprint.use_sql and any(keyword in task_text for keyword in sql_keywords):
             value += 6
+        if has_sqlserver_config and "sqlserver-readonly" in blueprint.tool_groups and any(
+            keyword in task_text for keyword in sql_keywords
+        ):
+            value += 7
         if blueprint.use_chart and any(keyword in task_text for keyword in chart_keywords):
             value += 8
         if any(keyword in task_text for keyword in planning_keywords) and any(
@@ -67,17 +79,32 @@ def recommend_agent(user_task: str, blueprints: Iterable[AgentBlueprint]) -> Age
 def build_agents(blueprints: Iterable[AgentBlueprint], llm: LLM) -> list[Agent]:
     agents: list[Agent] = []
     for blueprint in blueprints:
-        tools = [RagSearchTool()] if blueprint.use_rag else []
-        if blueprint.use_sql:
-            tools.extend([SqlSchemaTool(), SqlQueryTool()])
-        if blueprint.use_chart:
-            tools.append(RevenueChartTool())
+        tool_names = [*tools_for_groups(blueprint.tool_groups), *blueprint.tools_override]
+        tools = []
+        if "rag_search" in tool_names:
+            tools.append(RagSearchTool())
+        if "create_bar_chart" in tool_names:
+            tools.append(BarChartFromRowsTool())
+        if "save_rows_csv" in tool_names:
+            tools.append(SaveRowsCSVTool())
+        if any(tool_name.startswith("sqlserver_") for tool_name in tool_names):
+            tools.extend(
+                [
+                    SQLServerTestConnectionTool(),
+                    SQLServerSchemaTool(),
+                    SQLServerQueryTool(),
+                    SQLServerSampleRowsTool(),
+                ]
+            )
+
+        skill_objects = load_agent_skills(blueprint.skills)
         agents.append(
             Agent(
                 role=blueprint.role,
                 goal=blueprint.goal,
                 backstory=blueprint.backstory,
                 tools=tools,
+                skills=skill_objects or None,
                 llm=llm,
                 allow_delegation=False,
                 max_iter=2,
@@ -99,7 +126,7 @@ def build_managed_crew(
     workers = build_agents(worker_blueprints, llm)
     recommended = recommend_agent(user_task, worker_blueprints)
     roster = "\n".join(
-        f"- {item.role}: mục tiêu={item.goal}; RAG tool={'có' if item.use_rag else 'không'}; SQL tool={'có' if item.use_sql else 'không'}; Chart tool={'có' if item.use_chart else 'không'}"
+        f"- {item.role}: mục tiêu={item.goal}; tool_groups={', '.join(item.tool_groups) or 'none'}; skills={', '.join(item.skills) or 'none'}"
         for item in worker_blueprints
     )
 
@@ -110,6 +137,7 @@ def build_managed_crew(
             "Bạn là agent điều phối tổng. Bạn hiểu năng lực của từng agent, "
             "không tự làm hết việc nếu có agent phù hợp hơn, và luôn tạo kết quả cuối cùng có thể review được."
         ),
+        skills=load_agent_skills(["agent-routing", "result-review", "security-review"]) or None,
         llm=llm,
         allow_delegation=True,
         max_iter=3,
@@ -124,6 +152,7 @@ def build_managed_crew(
             "Bạn đại diện cho agent gốc để kiểm tra: đã đúng task chưa, agent được chọn có phù hợp không, "
             "kết quả có thiếu thông tin quan trọng không, và cần sửa gì trước khi gửi user."
         ),
+        skills=load_agent_skills(["result-review", "security-review", "report-writing"]) or None,
         llm=llm,
         allow_delegation=False,
         max_iter=2,
@@ -141,13 +170,16 @@ def build_managed_crew(
             f"Nếu không có lý do mạnh để đổi, hãy giao cho agent: {recommended.role}\n\n"
             "Quy trình bắt buộc:\n"
             "1. Đọc danh sách agent và chọn agent phù hợp nhất.\n"
-            "2. Nếu task cần tài liệu nội bộ, giao cho agent có RAG tool.\n"
-            "3. Nếu task cần dữ liệu bảng, SQL, doanh thu, đơn hàng hoặc khách hàng, giao cho agent có SQL tool.\n"
-            "4. Khi cần dữ liệu DB, ưu tiên quy trình: agent tạo SQL hoặc xem schema -> agent truy xuất dữ liệu -> agent trả lời từ dữ liệu.\n"
-            "5. Nếu task yêu cầu vẽ biểu đồ, phải giao cho agent có Chart tool và yêu cầu tạo file PNG thật.\n"
-            "6. Nếu dùng create_revenue_chart, bắt buộc copy nguyên văn đường dẫn file tool trả về; không tự đặt tên file.\n"
-            "7. Giao việc rõ ràng cho agent đã chọn.\n"
-            "8. Tổng hợp kết quả thành bản trả lời nháp, kèm tên agent đã xử lý và lý do chọn agent."
+            "2. Ưu tiên chọn theo tool_groups và skills thay vì chỉ theo từ khóa.\n"
+            "3. Nếu task cần tài liệu nội bộ, giao cho agent có local-rag hoặc rag-research.\n"
+            "4. Nếu task cần dữ liệu bảng, SQL, doanh thu, đơn hàng hoặc khách hàng, ưu tiên agent có sqlserver-readonly khi SQL Server đã cấu hình.\n"
+            "5. Khi cần dữ liệu DB, ưu tiên quy trình: đọc schema -> chạy SELECT read-only -> phân tích dữ liệu -> trả lời từ dữ liệu.\n"
+            "6. Nếu task yêu cầu vẽ biểu đồ, phải giao cho agent có charting/chart-selection và yêu cầu tạo file PNG thật.\n"
+            "7. Nếu dữ liệu đến từ SQL Server hoặc JSON rows, dùng create_bar_chart để tạo file PNG.\n"
+            "8. Nếu dùng tool tạo file, bắt buộc copy nguyên văn field path tool trả về; không tự đặt tên file.\n"
+            "9. Nếu user yêu cầu lưu dữ liệu, xuất CSV hoặc báo cáo có bảng dữ liệu, phải dùng save_rows_csv để tạo file thật trong output/.\n"
+            "10. Giao việc rõ ràng cho agent đã chọn.\n"
+            "11. Tổng hợp kết quả thành bản trả lời nháp, kèm tên agent đã xử lý và lý do chọn agent."
         ),
         expected_output=(
             "Bản trả lời nháp bằng tiếng Việt gồm: agent đã chọn, lý do chọn, kết quả thực hiện, "
@@ -160,7 +192,9 @@ def build_managed_crew(
             "Review kết quả của execution_task trước khi trả về user. "
             "Nếu kết quả chưa bám sát task, hãy chỉ rõ cần sửa. "
             "Nếu đạt, viết câu trả lời cuối cùng ngắn gọn và có cấu trúc. "
-            "Nếu có file output, phải giữ nguyên đường dẫn file thật từ tool."
+            "Nếu có file output, phải giữ nguyên đường dẫn file thật từ tool. "
+            "Nếu câu trả lời nháp nhắc tới file nhưng không có path thật từ tool output, phải nói rõ file chưa được tạo, không được giữ tên file bịa. "
+            "Không chấp nhận đường dẫn /tmp/...; chỉ công nhận file trong thư mục output/ của project hoặc path tuyệt đối do tool trả về."
         ),
         expected_output="Final answer bằng tiếng Việt gồm 3 phần: Kết quả, Review của manager, Bước tiếp theo nếu cần.",
         agent=reviewer,

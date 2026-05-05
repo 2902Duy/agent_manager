@@ -1,0 +1,47 @@
+agent-routing:
+  description: Chọn agent theo năng lực, tool group và risk level.
+  allowed_tools: []
+
+agent-design:
+  description: Đề xuất agent mới khi thiếu năng lực thật sự.
+  allowed_tools: []
+
+rag-research:
+  description: Truy xuất tài liệu nội bộ và trả lời có nguồn.
+  allowed_tools: [rag_search]
+
+sql-analysis:
+  description: Viết và giải thích SQL read-only an toàn.
+  allowed_tools: [sqlserver_schema, sqlserver_query]
+
+sqlserver-operations:
+  description: Làm việc với SQL Server thật qua connection profile an toàn.
+  allowed_tools: [sqlserver_test_connection, sqlserver_schema, sqlserver_query, sqlserver_sample_rows]
+
+data-quality-check:
+  description: Kiểm tra dữ liệu thiếu, sai kiểu, bất thường và giới hạn phân tích.
+  allowed_tools: [dataframe_profile]
+
+business-metrics:
+  description: Tính KPI, doanh thu, tăng trưởng và phân tích kinh doanh.
+  allowed_tools: [sqlserver_query, dataframe_profile]
+
+chart-selection:
+  description: Chọn biểu đồ phù hợp và yêu cầu tạo file output thật.
+  allowed_tools: [create_bar_chart, chart_from_dataframe]
+
+report-writing:
+  description: Viết câu trả lời và báo cáo ngắn gọn, có cấu trúc.
+  allowed_tools: [rag_search]
+
+result-review:
+  description: Review kết quả cuối, kiểm tra dữ liệu thật và file output thật.
+  allowed_tools: []
+
+security-review:
+  description: Kiểm tra secret, query nguy hiểm và rủi ro dữ liệu.
+  allowed_tools: []
+
+export-packaging:
+  description: Đóng gói Markdown, Excel, PDF theo output thật.
+  allowed_tools: [save_rows_csv, export_markdown, export_excel, export_pdf]

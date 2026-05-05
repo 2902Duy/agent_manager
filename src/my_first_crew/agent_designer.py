@@ -3,6 +3,11 @@ from typing import Iterable
 
 from crewai import Agent
 
+from my_first_crew.capability_registry import (
+    load_agent_skills,
+    normalize_capability_name,
+    required_skills_for_groups,
+)
 from my_first_crew.crew_builder import make_llm
 from my_first_crew.models import AgentBlueprint, AgentDesignResult, DEFAULT_MODEL, agent_key, normalize_text
 
@@ -26,12 +31,48 @@ def _dedupe_suggestions(
 
 def _has_agent_with_tool(blueprints: Iterable[AgentBlueprint], tool_name: str) -> bool:
     if tool_name == "rag":
-        return any(blueprint.use_rag for blueprint in blueprints)
+        return any(blueprint.use_rag or "local-rag" in blueprint.tool_groups for blueprint in blueprints)
     if tool_name == "sql":
-        return any(blueprint.use_sql for blueprint in blueprints)
+        return any(
+            blueprint.use_sql
+            or "sqlserver-readonly" in blueprint.tool_groups
+            for blueprint in blueprints
+        )
     if tool_name == "chart":
-        return any(blueprint.use_chart for blueprint in blueprints)
+        return any(blueprint.use_chart or "charting" in blueprint.tool_groups for blueprint in blueprints)
     return False
+
+
+def _default_groups_for_flags(agent: AgentBlueprint) -> list[str]:
+    groups: list[str] = []
+    if agent.use_rag:
+        groups.append("local-rag")
+    if agent.use_sql:
+        groups.append("sqlserver-readonly")
+    if agent.use_chart:
+        groups.append("charting")
+    return groups
+
+
+def _normalize_groups(values: Iterable[str]) -> list[str]:
+    groups: list[str] = []
+    for value in values:
+        normalized = normalize_capability_name(value)
+        if normalized and normalized not in groups:
+            groups.append(normalized)
+    return groups
+
+
+def _normalize_skills(values: Iterable[str], tool_groups: Iterable[str]) -> list[str]:
+    skills: list[str] = []
+    for value in values:
+        normalized = normalize_capability_name(value)
+        if normalized and normalized not in skills:
+            skills.append(normalized)
+    for skill in required_skills_for_groups(tool_groups):
+        if skill not in skills:
+            skills.append(skill)
+    return skills
 
 
 def _filter_redundant_tool_suggestions(
@@ -88,8 +129,8 @@ def suggest_missing_agents(
 ) -> list[AgentBlueprint]:
     current_agents = list(blueprints)
     roster = "\n".join(
-        f"- name={agent.name}; role={agent.role}; goal={agent.goal}; tools="
-        f"{','.join(tool for tool, enabled in [('rag_search', agent.use_rag), ('sql_query/sql_schema', agent.use_sql), ('create_revenue_chart', agent.use_chart)] if enabled) or 'none'}"
+        f"- name={agent.name}; role={agent.role}; goal={agent.goal}; "
+        f"tool_groups={','.join(agent.tool_groups) or 'none'}; skills={','.join(agent.skills) or 'none'}"
         for agent in current_agents
     )
     capability_summary = (
@@ -106,6 +147,7 @@ def suggest_missing_agents(
             "Bạn chỉ đề xuất agent mới khi thiếu tool bắt buộc hoặc thiếu một chuyên môn khác biệt rõ ràng. "
             "Bạn không đề xuất agent mới chỉ vì task có từ khóa giống một mẫu đã biết."
         ),
+        skills=load_agent_skills(["agent-design", "security-review"]) or None,
         llm=make_llm(model=model, temperature=0),
         max_iter=1,
         max_retry_limit=1,
@@ -119,16 +161,21 @@ def suggest_missing_agents(
         "Tóm tắt năng lực hiện có:\n"
         f"{capability_summary}\n\n"
         "Tool có thể gắn cho agent mới:\n"
-        "- use_rag=true nếu cần đọc data.txt bằng rag_search.\n"
-        "- use_sql=true nếu cần đọc schema.sql hoặc truy vấn sample.db bằng sql_schema/sql_query.\n"
-        "- use_chart=true nếu cần tạo file biểu đồ PNG bằng create_revenue_chart; nếu use_chart=true thì thường use_sql cũng nên true.\n\n"
+        "- local-rag: đọc data.txt bằng rag_search.\n"
+        "- sqlserver-readonly: đọc SQL Server thật bằng connection profile read-only.\n"
+        "- dataframe-analysis: phân tích dữ liệu bảng sau khi truy xuất.\n"
+        "- charting: tạo file biểu đồ PNG.\n"
+        "- report-export: xuất Markdown/Excel/PDF.\n\n"
+        "Skill có thể gắn cho agent mới: rag-research, sql-analysis, sqlserver-operations, "
+        "data-quality-check, business-metrics, chart-selection, report-writing, result-review, security-review.\n\n"
         "Nguyên tắc ra quyết định:\n"
         "- Không tạo agent mới nếu agent hiện có đã có tool và vai trò đủ gần để xử lý task.\n"
         "- Không tạo agent mới chỉ vì task có từ khóa như biểu đồ, SQL, RAG, dashboard hoặc báo cáo.\n"
-        "- Nếu task yêu cầu biểu đồ nhưng đã có agent có create_revenue_chart, trả về needs_new_agents=false.\n"
-        "- Nếu task yêu cầu SQL nhưng đã có agent có sql_schema/sql_query, trả về needs_new_agents=false trừ khi cần chuyên môn khác biệt rõ ràng.\n"
+        "- Nếu task yêu cầu biểu đồ nhưng đã có agent có charting hoặc create_bar_chart, trả về needs_new_agents=false.\n"
+        "- Nếu task yêu cầu SQL thật nhưng đã có agent có sqlserver-readonly, trả về needs_new_agents=false trừ khi cần chuyên môn khác biệt rõ ràng.\n"
         "- Chỉ đề xuất agent mới khi thiếu tool bắt buộc hoặc thiếu vai trò chuyên biệt chưa có, ví dụ: dự báo, xuất PDF/Excel, kiểm thử dữ liệu, tối ưu prompt.\n"
-        "- Nếu cần đề xuất agent biểu đồ vì chưa có Chart tool, agent đó nên có use_chart=true và use_sql=true.\n\n"
+        "- Nếu cần đề xuất agent biểu đồ cho dữ liệu thật, agent đó nên có tool_groups=[sqlserver-readonly, dataframe-analysis, charting] và skills=[sqlserver-operations, sql-analysis, business-metrics, chart-selection].\n"
+        "- Ưu tiên trả về tool_groups và skills ngắn gọn; các field use_rag/use_sql/use_chart chỉ để tương thích cũ.\n\n"
         f"Hãy đề xuất tối đa {max_suggestions} agent mới nếu thật sự cần. "
         "Nếu agent hiện có đã đủ, trả về needs_new_agents=false. Trả về đúng JSON theo schema, không markdown."
     )
@@ -150,15 +197,17 @@ def suggest_missing_agents(
         return []
 
     suggestions = [
-        AgentBlueprint(
+        (lambda groups, agent: AgentBlueprint(
             name=agent_key(agent.name or agent.role),
             role=agent.role,
             goal=agent.goal,
             backstory=agent.backstory,
+            tool_groups=groups,
+            skills=_normalize_skills(agent.skills, groups),
             use_rag=agent.use_rag,
             use_sql=agent.use_sql or agent.use_chart,
             use_chart=agent.use_chart,
-        )
+        ))(_normalize_groups(agent.tool_groups) or _default_groups_for_flags(agent), agent)
         for agent in design.agents[:max_suggestions]
     ]
     suggestions = _filter_redundant_tool_suggestions(suggestions, current_agents)
