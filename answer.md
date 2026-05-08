@@ -1,14 +1,12 @@
-**Kết quả:**
-- **Agent thực hiện:** Chuyên viên dữ liệu SQL Server.
-- **Quy trình:** 
-    - Đã truy vấn dữ liệu từ bảng `dbo.Orders` và `dbo.Products` bằng quyền read-only.
-    - Tổng hợp doanh thu theo từng sản phẩm thành công.
-    - Đã tạo biểu đồ trực quan hóa dữ liệu doanh thu.
-- **Dữ liệu/Nguồn:** Dữ liệu được trích xuất trực tiếp từ database thông qua tool `sqlserver-readonly`.
-- **File kết quả:** Biểu đồ đã được lưu tại: `output/revenue_by_product.png`
+### 1. Kết quả
+Dựa trên truy vấn dữ liệu từ bảng `dbo.Orders`, số lượng đơn hàng có trạng thái 'Cancelled' là: **12 đơn hàng**.
 
-**Review của manager:**
-Kết quả thực hiện đã đáp ứng đầy đủ các yêu cầu về phân tích dữ liệu và trực quan hóa. Đường dẫn file hợp lệ, quy trình bảo mật được đảm bảo thông qua việc sử dụng tool read-only. Báo cáo rõ ràng, ngắn gọn.
+### 2. Review của Manager
+*   **Độ chính xác:** Truy vấn `SELECT COUNT(OrderID) AS CancelledOrderCount FROM dbo.Orders WHERE Status = 'Cancelled';` là chính xác và phù hợp với yêu cầu đếm số lượng đơn hàng bị hủy.
+*   **Tính bảo mật:** Truy vấn chỉ thực hiện thao tác đọc (SELECT), không chứa các thông tin nhạy cảm như mật khẩu, API key hay thông tin định danh cá nhân (PII) của khách hàng. Đảm bảo an toàn dữ liệu.
+*   **Định dạng:** Đã tuân thủ cấu trúc báo cáo yêu cầu.
+*   **File output:** Không cần thiết phải xuất file cho yêu cầu truy vấn đơn giản này. Dữ liệu đã được hiển thị trực tiếp trong báo cáo.
 
-**Bước tiếp theo:**
-Nếu bạn cần phân tích sâu hơn về xu hướng doanh thu theo thời gian hoặc so sánh với các quý trước, vui lòng cung cấp thêm yêu cầu để tôi thực hiện.
+### 3. Bước tiếp theo
+*   Nếu bạn cần danh sách chi tiết các đơn hàng này (ví dụ: `OrderID`, `OrderDate`, `Reason`) để phân tích nguyên nhân hủy, vui lòng phản hồi lại để tôi thực hiện truy vấn chi tiết hơn.
+*   Nếu không có yêu cầu thêm, tác vụ này được coi là đã hoàn thành.

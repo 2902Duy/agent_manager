@@ -4,7 +4,9 @@ import unicodedata
 from pydantic import BaseModel, Field
 
 
-DEFAULT_MODEL = "gemini/gemini-3.1-flash-lite-preview"
+import os
+
+DEFAULT_MODEL = os.getenv("MODEL", "google/gemini-2.0-flash")
 
 
 @dataclass

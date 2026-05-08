@@ -1,0 +1,17 @@
+﻿
+Collecting usage statistics. To deactivate, set browser.gatherUsageStats to false.
+
+uv : 2026-05-08 12:43:44.651 Uvicorn server started on 0.0.0.0:8501
+At line:1 char:70
++ ... T_EMAIL=''; uv run streamlit run src/my_first_crew/app.py --server.he ...
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (2026-05-08 12:4...on 0.0.0.0:8501:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+
+  You can now view your Streamlit app in your browser.
+
+  Local URL: http://localhost:8501
+  Network URL: http://192.168.1.95:8501
+  External URL: http://14.191.102.87:8501
+
