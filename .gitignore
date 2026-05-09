@@ -1,3 +1,10 @@
 .env
 __pycache__/
 .DS_Store
+
+# Multi-Agent App generated files
+multi_agent_app/db/sample.db
+multi_agent_app/db/sqlite_checkpoints.db
+multi_agent_app/db/vector_store/*
+!multi_agent_app/db/vector_store/.gitkeep
+*.pyc
