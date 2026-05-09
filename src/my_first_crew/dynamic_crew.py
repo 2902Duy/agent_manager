@@ -13,6 +13,7 @@ from my_first_crew.agent_registry import (
     AGENTS_YAML,
     DEFAULT_AGENT_BLUEPRINTS,
     load_agent_blueprints,
+    load_all_agent_blueprints,
     save_agent_blueprints,
 )
 from my_first_crew.crew_builder import (
@@ -36,6 +37,7 @@ __all__ = [
     "build_managed_crew",
     "kickoff_managed_task",
     "load_agent_blueprints",
+    "load_all_agent_blueprints",
     "make_llm",
     "recommend_agent",
     "save_agent_blueprints",

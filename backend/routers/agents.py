@@ -4,7 +4,7 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
 from my_first_crew.agent_registry import (
-    load_agent_blueprints,
+    load_all_agent_blueprints,
     save_agent_blueprints,
 )
 from my_first_crew.models import AgentBlueprint
@@ -63,12 +63,12 @@ def _bp_to_dict(bp: AgentBlueprint) -> dict:
 
 @router.get("")
 def list_agents() -> list[dict]:
-    return [_bp_to_dict(bp) for bp in load_agent_blueprints()]
+    return [_bp_to_dict(bp) for bp in load_all_agent_blueprints()]
 
 
 @router.get("/{name}")
 def get_agent(name: str) -> dict:
-    for bp in load_agent_blueprints():
+    for bp in load_all_agent_blueprints():
         if bp.name == name:
             return _bp_to_dict(bp)
     raise HTTPException(404, f"Agent '{name}' not found")
@@ -76,7 +76,7 @@ def get_agent(name: str) -> dict:
 
 @router.post("")
 def create_agent(name: str, data: AgentCreateUpdate) -> dict:
-    blueprints = list(load_agent_blueprints())
+    blueprints = list(load_all_agent_blueprints())
     if any(bp.name == name for bp in blueprints):
         raise HTTPException(409, f"Agent '{name}' already exists")
     bp = AgentBlueprint(name=name, **data.model_dump())
@@ -87,7 +87,7 @@ def create_agent(name: str, data: AgentCreateUpdate) -> dict:
 
 @router.put("/{name}")
 def update_agent(name: str, data: AgentCreateUpdate) -> dict:
-    blueprints = list(load_agent_blueprints())
+    blueprints = list(load_all_agent_blueprints())
     for i, bp in enumerate(blueprints):
         if bp.name == name:
             updated = AgentBlueprint(name=name, **data.model_dump())
@@ -99,7 +99,7 @@ def update_agent(name: str, data: AgentCreateUpdate) -> dict:
 
 @router.delete("/{name}")
 def delete_agent(name: str) -> dict:
-    blueprints = list(load_agent_blueprints())
+    blueprints = list(load_all_agent_blueprints())
     new_list = [bp for bp in blueprints if bp.name != name]
     if len(new_list) == len(blueprints):
         raise HTTPException(404, f"Agent '{name}' not found")
@@ -109,7 +109,7 @@ def delete_agent(name: str) -> dict:
 
 @router.patch("/{name}/toggle")
 def toggle_agent(name: str) -> dict:
-    blueprints = list(load_agent_blueprints())
+    blueprints = list(load_all_agent_blueprints())
     for i, bp in enumerate(blueprints):
         if bp.name == name:
             bp.enabled = not bp.enabled

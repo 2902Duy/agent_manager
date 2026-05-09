@@ -8,7 +8,7 @@ from datetime import datetime
 from typing import Any
 
 from fastapi import APIRouter
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
 from my_first_crew.agent_registry import load_agent_blueprints
 from my_first_crew.crew_builder import build_managed_crew
@@ -19,6 +19,8 @@ router = APIRouter()
 
 # In-memory session store
 _sessions: dict[str, dict[str, Any]] = {}
+# Only one crew runs at a time to avoid global event bus cross-talk
+_crew_lock = threading.Lock()
 
 
 class RunRequest(BaseModel):
@@ -48,19 +50,20 @@ def _run_in_thread(session_id: str, task: str, model: str) -> None:
     from crewai.events.event_bus import crewai_event_bus
 
     monitor = _sessions[session_id]["monitor"]
-    try:
-        monitor.setup_listeners(crewai_event_bus)
-        blueprints = load_agent_blueprints()
-        crew = build_managed_crew(user_task=task, blueprints=blueprints, model=model)
-        result = crew.kickoff()
-        monitor.status = "completed"
-        _sessions[session_id]["result"] = str(result)
-    except Exception as exc:
-        monitor.status = "failed"
-        _sessions[session_id]["error"] = str(exc)
-        monitor._record("error", f"Lỗi: {exc}")
-    finally:
-        monitor.close()
+    with _crew_lock:
+        try:
+            monitor.setup_listeners(crewai_event_bus)
+            blueprints = load_agent_blueprints()
+            crew = build_managed_crew(user_task=task, blueprints=blueprints, model=model)
+            result = crew.kickoff()
+            monitor.status = "completed"
+            _sessions[session_id]["result"] = str(result)
+        except Exception as exc:
+            monitor.status = "failed"
+            _sessions[session_id]["error"] = str(exc)
+            monitor._record("error", f"Lỗi: {exc}")
+        finally:
+            monitor.close()
 
 
 @router.post("/run")

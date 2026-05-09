@@ -1,6 +1,5 @@
 """Output file management endpoints."""
 
-import os
 from pathlib import Path
 
 from fastapi import APIRouter
@@ -30,7 +29,9 @@ def list_outputs() -> list[dict]:
 
 @router.get("/{filename}")
 def get_output(filename: str):
-    filepath = OUTPUT_DIR / filename
+    filepath = (OUTPUT_DIR / filename).resolve()
+    if not filepath.is_relative_to(OUTPUT_DIR.resolve()):
+        return {"error": "Access denied"}
     if not filepath.exists() or not filepath.is_file():
         return {"error": "File not found"}
     return FileResponse(str(filepath))

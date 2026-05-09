@@ -152,7 +152,8 @@ def _blueprint_from_yaml(name: str, config: dict) -> AgentBlueprint:
     )
 
 
-def load_agent_blueprints() -> list[AgentBlueprint]:
+def load_all_agent_blueprints() -> list[AgentBlueprint]:
+    """Load all agent blueprints including disabled ones."""
     if not AGENTS_YAML.exists():
         return list(DEFAULT_AGENT_BLUEPRINTS)
 
@@ -163,10 +164,13 @@ def load_agent_blueprints() -> list[AgentBlueprint]:
     blueprints: list[AgentBlueprint] = []
     for name, config in data.items():
         if isinstance(config, dict):
-            blueprint = _blueprint_from_yaml(str(name), config)
-            if blueprint.enabled:
-                blueprints.append(blueprint)
+            blueprints.append(_blueprint_from_yaml(str(name), config))
     return blueprints or list(DEFAULT_AGENT_BLUEPRINTS)
+
+
+def load_agent_blueprints() -> list[AgentBlueprint]:
+    """Load only enabled agent blueprints (for crew execution)."""
+    return [bp for bp in load_all_agent_blueprints() if bp.enabled]
 
 
 def _tools_for_blueprint(blueprint: AgentBlueprint) -> list[str]:
