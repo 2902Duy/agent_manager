@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import sqlite3
+
 from langgraph.checkpoint.sqlite import SqliteSaver
 from langgraph.graph import END, StateGraph
 
@@ -94,7 +96,8 @@ def build_graph(checkpoint_db: str = "multi_agent_app/db/sqlite_checkpoints.db")
     workflow.add_edge("final_agent", END)
 
     # -- Compile with checkpointer --
-    checkpointer = SqliteSaver.from_conn_string(checkpoint_db)
+    conn = sqlite3.connect(checkpoint_db, check_same_thread=False)
+    checkpointer = SqliteSaver(conn)
     graph = workflow.compile(
         checkpointer=checkpointer,
         interrupt_before=["db_writer_agent"],
