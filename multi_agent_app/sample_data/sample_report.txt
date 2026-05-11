@@ -1,0 +1,36 @@
+BÁO CÁO DOANH THU THÁNG 5/2024
+==================================
+
+1. TỔNG QUAN
+- Tổng doanh thu tháng 5/2024: 15,200,000,000 VNĐ
+- So với tháng 4/2024: tăng 12.5%
+- So với cùng kỳ năm trước: tăng 8.3%
+
+2. DOANH THU THEO VÙNG
+| Vùng          | Doanh thu (VNĐ)   | Tăng trưởng |
+|---------------|-------------------|-------------|
+| Hà Nội        | 5,500,000,000     | +15%        |
+| Hồ Chí Minh   | 4,800,000,000     | +10%        |
+| Đà Nẵng       | 2,200,000,000     | +18%        |
+| Cần Thơ       | 1,500,000,000     | +5%         |
+| Hải Phòng     | 1,200,000,000     | +8%         |
+
+3. SẢN PHẨM BÁN CHẠY
+- Laptop Dell XPS 15: 120 units (doanh thu: 4,200,000,000 VNĐ)
+- iPhone 15 Pro Max: 95 units (doanh thu: 3,040,000,000 VNĐ)
+- MacBook Pro M3: 45 units (doanh thu: 2,025,000,000 VNĐ)
+- Samsung Galaxy S24: 80 units (doanh thu: 2,000,000,000 VNĐ)
+
+4. NHẬN XÉT
+- Doanh thu tăng mạnh ở phân khúc Electronics, đặc biệt là laptop và smartphone.
+- Khu vực Đà Nẵng có tốc độ tăng trưởng cao nhất (18%).
+- Cần đẩy mạnh marketing ở Cần Thơ và Hải Phòng.
+
+5. ĐỀ XUẤT
+- Tăng inventory cho Laptop Dell XPS 15 và MacBook Pro M3 (đang hết hàng nhanh).
+- Chạy chương trình khuyến mãi mùa hè cho khu vực miền Trung.
+- Cập nhật doanh thu tháng 5 vào hệ thống database: 
+  UPDATE sales SET amount = 5000000000 WHERE sale_date LIKE '2024-05%' AND region = 'Da Nang'
+
+6. KẾT LUẬN
+Tháng 5/2024 là tháng có doanh thu tốt, vượt chỉ tiêu 5%. Cần duy trì và đẩy mạnh trong tháng 6.
