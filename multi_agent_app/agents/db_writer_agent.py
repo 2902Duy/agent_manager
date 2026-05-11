@@ -61,22 +61,26 @@ def execute_approved_action(state: AgentState) -> dict:
             "human_approved": None,
         }
 
-    sql_lines = proposed.strip().split("\n")
-    sql_statement = ""
-    for line in sql_lines:
-        stripped = line.strip()
-        if stripped.upper().startswith(("INSERT", "UPDATE", "DELETE")):
-            sql_statement = stripped
-            break
-    if not sql_statement:
+    import re
+
+    # Extract SQL from markdown code blocks first
+    code_block_match = re.search(r"```sql\s*(.*?)```", proposed, re.DOTALL | re.IGNORECASE)
+    if code_block_match:
+        sql_statement = code_block_match.group(1).strip()
+    else:
+        # Fallback: find lines starting with SQL keywords and collect until semicolon
+        sql_lines = proposed.strip().split("\n")
+        collecting = False
+        sql_parts = []
         for line in sql_lines:
             stripped = line.strip()
-            if stripped.endswith(";"):
-                sql_statement = stripped
-                break
-
-    if not sql_statement:
-        sql_statement = proposed.strip()
+            if not collecting and stripped.upper().startswith(("INSERT", "UPDATE", "DELETE")):
+                collecting = True
+            if collecting:
+                sql_parts.append(stripped)
+                if ";" in stripped:
+                    break
+        sql_statement = " ".join(sql_parts) if sql_parts else proposed.strip()
 
     result = execute_sql.invoke({"sql": sql_statement})
 

@@ -130,10 +130,8 @@ async def approve(req: ApproveRequest):
     config: dict[str, Any] = {"configurable": {"thread_id": req.thread_id}}
 
     try:
-        result = _graph.invoke(
-            {"human_approved": req.approved},
-            config=config,
-        )
+        _graph.update_state(config, {"human_approved": req.approved})
+        result = _graph.invoke(None, config=config)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

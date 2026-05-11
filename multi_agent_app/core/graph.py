@@ -27,13 +27,6 @@ def _route_supervisor(state: AgentState) -> str:
     return next_agent
 
 
-def _route_after_human_review(state: AgentState) -> str:
-    """After the HITL interrupt, decide whether to execute or reject."""
-    if state.get("human_approved"):
-        return "execute_approved_action"
-    return "supervisor"
-
-
 def build_graph(checkpoint_db: str = "multi_agent_app/db/sqlite_checkpoints.db"):
     """Construct and compile the LangGraph with SQLite checkpointing.
 
@@ -81,15 +74,8 @@ def build_graph(checkpoint_db: str = "multi_agent_app/db/sqlite_checkpoints.db")
     workflow.add_edge("db_reader_agent", "supervisor")
     workflow.add_edge("web_agent", "supervisor")
 
-    # -- DB Writer: interrupt for human approval, then route --
-    workflow.add_conditional_edges(
-        "db_writer_agent",
-        _route_after_human_review,
-        {
-            "execute_approved_action": "execute_approved_action",
-            "supervisor": "supervisor",
-        },
-    )
+    # -- DB Writer: proposes SQL, then goes to execute node (with interrupt) --
+    workflow.add_edge("db_writer_agent", "execute_approved_action")
     workflow.add_edge("execute_approved_action", "supervisor")
 
     # -- Final agent ends the graph --
@@ -100,7 +86,7 @@ def build_graph(checkpoint_db: str = "multi_agent_app/db/sqlite_checkpoints.db")
     checkpointer = SqliteSaver(conn)
     graph = workflow.compile(
         checkpointer=checkpointer,
-        interrupt_before=["db_writer_agent"],
+        interrupt_before=["execute_approved_action"],
     )
 
     return graph, checkpointer
