@@ -8,6 +8,7 @@ from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_google_genai import ChatGoogleGenerativeAI
 
 from multi_agent_app.core.state import AgentState
+from multi_agent_app.core.utils import extract_text
 from multi_agent_app.prompts.supervisor_prompt import SUPERVISOR_SYSTEM_PROMPT
 
 VALID_ROUTES = {
@@ -55,7 +56,7 @@ def supervisor_node(state: AgentState) -> dict:
         )
 
     response = llm.invoke(routing_input)
-    decision = response.content.strip().lower().replace("`", "").replace("*", "")
+    decision = extract_text(response.content).strip().lower().replace("`", "").replace("*", "")
 
     matched = None
     for route in VALID_ROUTES:

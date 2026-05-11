@@ -8,6 +8,7 @@ from langchain_core.messages import AIMessage, SystemMessage
 from langchain_google_genai import ChatGoogleGenerativeAI
 
 from multi_agent_app.core.state import AgentState
+from multi_agent_app.core.utils import extract_text
 from multi_agent_app.prompts.agent_prompts import DB_WRITER_AGENT_PROMPT
 from multi_agent_app.tools.db_tools import execute_sql
 
@@ -32,7 +33,7 @@ def db_writer_agent_node(state: AgentState) -> dict:
         )
 
     response = llm.invoke(messages)
-    proposed_sql = response.content or ""
+    proposed_sql = extract_text(response.content)
 
     return {
         "messages": [

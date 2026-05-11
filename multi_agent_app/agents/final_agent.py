@@ -8,6 +8,7 @@ from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 from langchain_google_genai import ChatGoogleGenerativeAI
 
 from multi_agent_app.core.state import AgentState
+from multi_agent_app.core.utils import extract_text
 from multi_agent_app.prompts.agent_prompts import FINAL_AGENT_PROMPT
 
 
@@ -47,7 +48,7 @@ def final_agent_node(state: AgentState) -> dict:
     ]
 
     response = llm.invoke(messages)
-    output = response.content or "Không thể tổng hợp câu trả lời."
+    output = extract_text(response.content) or "Không thể tổng hợp câu trả lời."
 
     return {
         "messages": [AIMessage(content=output)],

@@ -8,6 +8,7 @@ from langchain_core.messages import AIMessage, SystemMessage
 from langchain_google_genai import ChatGoogleGenerativeAI
 
 from multi_agent_app.core.state import AgentState
+from multi_agent_app.core.utils import extract_text
 from multi_agent_app.prompts.agent_prompts import RAG_AGENT_PROMPT
 from multi_agent_app.tools.rag_tools import get_rag_tools
 
@@ -41,9 +42,9 @@ def rag_agent_node(state: AgentState) -> dict:
             [SystemMessage(content=RAG_AGENT_PROMPT)]
             + [AIMessage(content=summary_prompt)]
         )
-        output = summary_response.content
+        output = extract_text(summary_response.content)
     else:
-        output = response.content or "Không tìm thấy dữ liệu liên quan trong tài liệu nội bộ."
+        output = extract_text(response.content) or "Không tìm thấy dữ liệu liên quan trong tài liệu nội bộ."
 
     context = dict(state.get("context", {}))
     context["rag_agent"] = output

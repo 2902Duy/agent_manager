@@ -8,6 +8,7 @@ from langchain_core.messages import AIMessage, SystemMessage
 from langchain_google_genai import ChatGoogleGenerativeAI
 
 from multi_agent_app.core.state import AgentState
+from multi_agent_app.core.utils import extract_text
 from multi_agent_app.prompts.agent_prompts import DB_READER_AGENT_PROMPT
 from multi_agent_app.tools.db_tools import get_db_tools
 
@@ -37,7 +38,7 @@ def db_reader_agent_node(state: AgentState) -> dict:
     if tool_results:
         output = "\n".join(tool_results)
     else:
-        output = response.content or "Không thể truy vấn dữ liệu."
+        output = extract_text(response.content) or "Không thể truy vấn dữ liệu."
 
     context = dict(state.get("context", {}))
     context["db_reader_agent"] = output

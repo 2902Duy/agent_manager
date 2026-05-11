@@ -8,6 +8,7 @@ from langchain_core.messages import AIMessage, SystemMessage
 from langchain_google_genai import ChatGoogleGenerativeAI
 
 from multi_agent_app.core.state import AgentState
+from multi_agent_app.core.utils import extract_text
 from multi_agent_app.prompts.agent_prompts import WEB_AGENT_PROMPT
 from multi_agent_app.tools.web_tools import get_web_tools
 
@@ -43,9 +44,9 @@ def web_agent_node(state: AgentState) -> dict:
             [SystemMessage(content=WEB_AGENT_PROMPT)]
             + [AIMessage(content=summary_prompt)]
         )
-        output = summary_response.content
+        output = extract_text(summary_response.content)
     else:
-        output = response.content or "Không thể tìm kiếm thông tin trên web."
+        output = extract_text(response.content) or "Không thể tìm kiếm thông tin trên web."
 
     context = dict(state.get("context", {}))
     context["web_agent"] = output

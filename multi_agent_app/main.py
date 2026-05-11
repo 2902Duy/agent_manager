@@ -13,6 +13,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from langchain_core.messages import HumanMessage
 from pydantic import BaseModel
 
+from multi_agent_app.core.utils import extract_text
+
 load_dotenv()
 
 # ── Global state ────────────────────────────────────────────────────────
@@ -106,7 +108,7 @@ async def chat(req: ChatRequest):
         raise HTTPException(status_code=500, detail=str(e))
 
     messages = result.get("messages", [])
-    last_msg = messages[-1].content if messages else "No response."
+    last_msg = extract_text(messages[-1].content) if messages else "No response."
     proposed = result.get("proposed_action")
 
     status = "awaiting_approval" if proposed else "completed"
@@ -136,7 +138,7 @@ async def approve(req: ApproveRequest):
         raise HTTPException(status_code=500, detail=str(e))
 
     messages = result.get("messages", [])
-    last_msg = messages[-1].content if messages else "No response."
+    last_msg = extract_text(messages[-1].content) if messages else "No response."
     proposed = result.get("proposed_action")
 
     status = "awaiting_approval" if proposed else "completed"
